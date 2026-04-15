@@ -78,11 +78,17 @@ parameters:
         short: Maximum inertial dead-reckoning time
         long: Maximum lapsed time from last fusion of measurements that constrain
           velocity drift before the EKF will report the horizontal nav solution as
-          invalid
+          invalid. astrm_dronesim mod - upstream caps this at 10_000_000 us (10 s)
+          as a safety bound; we raise it to INT32_MAX (~35 min) so SITL research
+          into prolonged dead-reckoning can proceed without the EKF flipping
+          xy_valid=false and kicking the controller into blind-land failsafe. The
+          IMU-only position estimate is still physically meaningless after ~10 s -
+          this flag just stops PX4 from policing it. Do NOT use this build on real
+          hardware.
       type: int32
       default: 5000000
       min: 500000
-      max: 10000000
+      max: 2147483647
       unit: us
     EKF2_HGT_REF:
       description:
