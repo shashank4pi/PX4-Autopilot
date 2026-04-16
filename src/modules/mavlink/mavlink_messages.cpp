@@ -149,6 +149,10 @@
 # include "streams/DEBUG.hpp"
 # include "streams/DEBUG_FLOAT_ARRAY.hpp"
 # include "streams/DEBUG_VECT.hpp"
+// astrm_dronesim: per-axis EKF innovations + test-ratios over DEBUG_FLOAT_ARRAY.
+// Enabled on desktop builds only (CONSTRAINED_FLASH excludes the base stream
+// too). Registration happens alongside the stock DEBUG_FLOAT_ARRAY entry below.
+# include "streams/EKF_INNOVATIONS_DEBUG.hpp"
 # include "streams/GIMBAL_DEVICE_ATTITUDE_STATUS.hpp"
 # include "streams/GIMBAL_DEVICE_SET_ATTITUDE.hpp"
 # include "streams/GIMBAL_MANAGER_INFORMATION.hpp"
@@ -410,6 +414,11 @@ static const StreamListItem streams_list[] = {
 #if defined(DEBUG_FLOAT_ARRAY_HPP)
 	create_stream_list_item<MavlinkStreamDebugFloatArray>(),
 #endif // DEBUG_FLOAT_ARRAY_HPP
+#if defined(EKF_INNOVATIONS_DEBUG_HPP)
+	// astrm_dronesim: sibling stream that piggybacks on DEBUG_FLOAT_ARRAY to
+	// publish per-axis EKF innovations + test-ratios for spoof analysis.
+	create_stream_list_item<MavlinkStreamEkfInnovationsDebug>(),
+#endif // EKF_INNOVATIONS_DEBUG_HPP
 #if defined(NAV_CONTROLLER_OUTPUT_HPP)
 	create_stream_list_item<MavlinkStreamNavControllerOutput>(),
 #endif // NAV_CONTROLLER_OUTPUT_HPP
