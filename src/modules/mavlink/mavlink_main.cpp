@@ -1621,6 +1621,18 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		configure_stream_local("DEBUG_VECT", 10.0f);
 		configure_stream_local("NAMED_VALUE_FLOAT", 10.0f);
 		configure_stream_local("LINK_NODE_STATUS", 1.0f);
+		// astrm_dronesim: per-axis EKF innovations + test-ratios for the
+		// spoof-analysis pipeline. Piggybacks on the DEBUG_FLOAT_ARRAY
+		// msg-id, so SET_MESSAGE_INTERVAL from a GCS can't reach it —
+		// get_stream_name(msg_id) resolves to the stock "DEBUG_FLOAT_ARRAY"
+		// stream first and stops searching. Only a name-based default
+		// keyed off "EKF_INNOVATIONS_DEBUG" actually turns the sibling
+		// stream on. Without this line the live_mavlink bridge sees zero
+		// /ekf/innovations/** and /ekf/innovation_ratios/** entities even
+		// though the code is compiled in. 10 Hz matches the bridge's
+		// request rate; bump here if you want finer temporal resolution
+		// during an attack.
+		configure_stream_local("EKF_INNOVATIONS_DEBUG", 10.0f);
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
 		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 5.0f);
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS
