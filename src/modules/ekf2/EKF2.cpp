@@ -984,6 +984,32 @@ void EKF2::VerifyParams()
 
 #endif // CONFIG_EKF2_EXTERNAL_VISION
 
+#if defined(CONFIG_EKF2_AUX_GLOBAL_POSITION)
+	// Upstream omits this: without it, AGP samples stamped at
+	// (now - AGP_DELAY) never fall inside TimestampedRingBuffer's
+	// [sample, sample+100ms) pop window — because realized imu_delayed
+	// lag (hrt_now - imu_buffer.oldest()) empirically runs ~0.79 * DELAY_MAX
+	// in SITL (downsampler/IMU arrival jitter), not the full DELAY_MAX.
+	// Bumping DELAY_MAX = AGP_DELAY exactly is NOT enough: realized lag
+	// stays below AGP_DELAY, so sample.time_us falls behind imu_delayed
+	// and the pop window is already in the past. Apply a 1.5× margin
+	// (same slack PX4 uses for _obs_buffer_length = DELAY_MAX * 1.5) so
+	// realized depth >= matcher budget with headroom.
+	for (int slot = 0; slot < 4; slot++) {
+		char pname[20] {};
+		snprintf(pname, sizeof(pname), "EKF2_AGP%d_DELAY", slot);
+		float agp_delay_ms = 0.f;
+
+		if (param_get(param_find(pname), &agp_delay_ms) == PX4_OK) {
+			const float agp_delay_with_margin = agp_delay_ms * 1.5f;
+
+			if (agp_delay_with_margin > delay_max) {
+				delay_max = agp_delay_with_margin;
+			}
+		}
+	}
+#endif // CONFIG_EKF2_AUX_GLOBAL_POSITION
+
 	if (delay_max > _param_ekf2_delay_max.get()) {
 		/* EVENT
 		 * @description EKF2_DELAY_MAX({1}ms) is too small compared to the maximum sensor delay ({2})
