@@ -8,3 +8,21 @@
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=x500_mono_cam_down}
 
 . ${R}etc/init.d-posix/airframes/4001_gz_x500
+
+# --- astrm_dronesim: AGP (aux_global_position) boot-time defaults ---
+# AuxGlobalPosition's constructor reads EKF2_AGP${i}_ID once at EKF2 start
+# and only allocates an AgpSource if ID != 0 (see
+# src/modules/ekf2/EKF/aid_sources/aux_global_position/aux_global_position.cpp).
+# Runtime param set via profiles cannot create the source post-boot, so
+# ID and DELAY (DELAY is also marked reboot_required in params yaml) must
+# be pinned here. CTRL stays at default 0 (dormant) — the
+# visual_gnss_agp profile bumps CTRL=3 at runtime to activate fusion,
+# and revert drops it back to 0.
+#
+# EKF2_DELAY_MAX=2000 honours the ≥1.5×AGP_DELAY margin the fork enforces
+# in EKF2::VerifyParams (realized imu_delayed depth is only ~0.79x nominal
+# in SITL, so AGP_DELAY=DELAY_MAX silently fails to fuse). See
+# memory/project_ekf2_agp_delay_max_margin.md for full derivation.
+param set-default EKF2_AGP0_ID 1
+param set-default EKF2_AGP0_DELAY 1300
+param set-default EKF2_DELAY_MAX 2000

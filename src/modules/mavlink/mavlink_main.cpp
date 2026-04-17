@@ -1633,6 +1633,10 @@ Mavlink::configure_streams_to_default(const char *configure_single_stream)
 		// request rate; bump here if you want finer temporal resolution
 		// during an attack.
 		configure_stream_local("EKF_INNOVATIONS_DEBUG", 10.0f);
+		// astrm_dronesim: sibling stream for modern per-aid-source EKF state
+		// (one DEBUG_FLOAT_ARRAY per aid source per update, tagged by name).
+		// Same dual-stream gotcha applies — name-based default required.
+		configure_stream_local("EKF_AID_SRC_DEBUG", 10.0f);
 #if defined(MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS)
 		configure_stream_local("FIGURE_EIGHT_EXECUTION_STATUS", 5.0f);
 #endif // MAVLINK_MSG_ID_FIGURE_EIGHT_EXECUTION_STATUS

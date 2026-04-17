@@ -153,6 +153,11 @@
 // Enabled on desktop builds only (CONSTRAINED_FLASH excludes the base stream
 // too). Registration happens alongside the stock DEBUG_FLOAT_ARRAY entry below.
 # include "streams/EKF_INNOVATIONS_DEBUG.hpp"
+// astrm_dronesim: modern per-aid-source EKF state over DEBUG_FLOAT_ARRAY.
+// Sibling of EKF_INNOVATIONS_DEBUG; emits one message per aid source per
+// update, tagged by name ("gnss_pos", "agp", "mag", ...). Ground-side Rerun
+// bridge routes by name; array_id = 20 for all messages.
+# include "streams/EKF_AID_SRC_DEBUG.hpp"
 # include "streams/GIMBAL_DEVICE_ATTITUDE_STATUS.hpp"
 # include "streams/GIMBAL_DEVICE_SET_ATTITUDE.hpp"
 # include "streams/GIMBAL_MANAGER_INFORMATION.hpp"
@@ -419,6 +424,12 @@ static const StreamListItem streams_list[] = {
 	// publish per-axis EKF innovations + test-ratios for spoof analysis.
 	create_stream_list_item<MavlinkStreamEkfInnovationsDebug>(),
 #endif // EKF_INNOVATIONS_DEBUG_HPP
+#if defined(EKF_AID_SRC_DEBUG_HPP)
+	// astrm_dronesim: modern per-aid-source EKF state (GNSS/AGP/EV/mag/baro/...)
+	// over DEBUG_FLOAT_ARRAY. Complements EKF_INNOVATIONS_DEBUG which is pinned
+	// to the legacy estimator_innovations schema.
+	create_stream_list_item<MavlinkStreamEkfAidSrcDebug>(),
+#endif // EKF_AID_SRC_DEBUG_HPP
 #if defined(NAV_CONTROLLER_OUTPUT_HPP)
 	create_stream_list_item<MavlinkStreamNavControllerOutput>(),
 #endif // NAV_CONTROLLER_OUTPUT_HPP
