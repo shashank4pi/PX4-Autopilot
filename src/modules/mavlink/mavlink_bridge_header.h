@@ -56,9 +56,15 @@
 #define MAVLINK_GET_CHANNEL_STATUS mavlink_get_channel_status
 
 #if !defined(CONSTRAINED_MEMORY)
-# define MAVLINK_COMM_NUM_BUFFERS 6
+// astrm_dronesim 2026-05-12: bumped 6 → 8 to accommodate the dedicated
+// vGPS (14710/14711) + rerun (14720/14721) MAVLink instances added in
+// init.d-posix/px4-rc.mavlink alongside PX4's stock six channels (GCS,
+// offboard, tooling, onboard payload, gimbal, + room for one more).
+# define MAVLINK_COMM_NUM_BUFFERS 8
 # define MAVLINK_COMM_4 static_cast<mavlink_channel_t>(4)
 # define MAVLINK_COMM_5 static_cast<mavlink_channel_t>(5)
+# define MAVLINK_COMM_6 static_cast<mavlink_channel_t>(6)
+# define MAVLINK_COMM_7 static_cast<mavlink_channel_t>(7)
 #endif
 
 #include <mavlink_types.h>

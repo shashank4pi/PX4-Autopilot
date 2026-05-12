@@ -110,6 +110,10 @@ private:
 		int8_t num_sent_per_channel[MAVLINK_COMM_NUM_BUFFERS] {-1, -1, -1, -1};
 #elif MAVLINK_COMM_NUM_BUFFERS == 6
 		int8_t num_sent_per_channel[MAVLINK_COMM_NUM_BUFFERS] {-1, -1, -1, -1, -1, -1};
+#elif MAVLINK_COMM_NUM_BUFFERS == 8
+		// astrm_dronesim 2026-05-12: 8 to fit dedicated vGPS + rerun
+		// MAVLink instances on top of PX4's stock six.
+		int8_t num_sent_per_channel[MAVLINK_COMM_NUM_BUFFERS] {-1, -1, -1, -1, -1, -1, -1, -1};
 #else
 # error Unknown number of MAVLINK_COMM_NUM_BUFFERS
 #endif

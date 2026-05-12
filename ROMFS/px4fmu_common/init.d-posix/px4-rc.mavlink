@@ -12,6 +12,38 @@ udp_gcs_port_local=$((18570+px4_instance))
 udp_tool_port_local=$((14600+px4_instance))
 udp_tool_port_remote=$((14601+px4_instance))
 
+# vGPS channel (astrm_vGPS SITL integration, 2026-05-11):
+# Dedicated mavlink instance for the astrm_vGPS online runner.  Coexists
+# with QGC (14550), the live offboard bridge (14540), and the tooling
+# channel (14601 — control_service) so the runner never competes for
+# partner-port registration on the offboard channel.  Without this
+# dedicated slot the runner's bind on 14540 races the dronesim's other
+# clients and PX4's peer table for that channel ends up in a "won't
+# stream" state.  The runner binds 14711 and sends heartbeats to 14710.
+udp_vgps_port_local=$((14710+px4_instance))
+udp_vgps_port_remote=$((14711+px4_instance))
+# astrm_vGPS SITL integration, 2026-05-11 (DEVICE=jetson extension):
+# Allow the vGPS partner to live on a remote host (e.g. Jetson).  When
+# ASTRM_VGPS_PARTNER_IP is unset (DEVICE=mac), PX4's default IP routing
+# sends to 127.0.0.1 — identical to before this env var existed.  When
+# set (DEVICE=jetson), PX4 streams the vGPS channel directly to that IP
+# and the Jetson's heartbeats come back over the same UDP socket.  No
+# proxy required.
+vgps_partner_ip="${ASTRM_VGPS_PARTNER_IP:-127.0.0.1}"
+
+# rerun channel (astrm_dronesim live-bridge, 2026-05-12):
+# Dedicated mavlink instance for mav_to_rerun (tools/rerun/live_mavlink).
+# Without this, mav_to_rerun's heartbeat on the shared offboard channel
+# (14580/14540) races the joystick / control_service for PX4's
+# peer-lock slot — empirically the joystick wins and mav_to_rerun
+# silently receives nothing.  With a dedicated channel the rerun
+# viewer never contends for telemetry.  Partner IP is always
+# loopback: mav_to_rerun lives next to PX4 on the Mac regardless of
+# where the vGPS runner runs.  PX4 binds 14720; mav_to_rerun
+# binds 14721.
+udp_rerun_port_local=$((14720+px4_instance))
+udp_rerun_port_remote=$((14721+px4_instance))
+
 # GCS link
 mavlink start -x -u $udp_gcs_port_local -r 4000000 -f
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u $udp_gcs_port_local
@@ -35,6 +67,53 @@ mavlink start -x -u $udp_tool_port_local -r 4000000 -f -m onboard -o $udp_tool_p
 
 # Onboard link to camera
 mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote
+
+# vGPS channel (astrm_vGPS SITL integration, 2026-05-11) — onboard mode,
+# 400 kB/s rate is plenty for the runner's GLOBAL_POSITION_INT + GPS_RAW_INT
+# subscriptions and the outbound GLOBAL_POSITION_SENSOR (msg 296) publish.
+# See note above on udp_vgps_port_local for why this is dedicated.
+#
+# NOTE: -t was REMOVED on 2026-05-12 after diagnosing a macOS kernel
+# state-table bug: when PX4 sent to (Jetson, 14711) before the Jetson
+# runner bound the port, the kernel marked that 4-tuple as bad (ICMP
+# port-unreachable poisoning) and silently dropped every subsequent
+# inbound packet from (Jetson, 14711) — including the runner's
+# heartbeats after it finally bound the port.  Without -t, PX4 doesn't
+# try to send anything until the runner's first heartbeat locks the
+# peer, so the bad-path state never gets created.  vgps_partner_ip is
+# kept (above) for documentation but no longer wired here; if you need
+# it back (e.g. DEVICE=jetson can't peer-lock), add `-t $vgps_partner_ip`
+# AND ensure the runner binds udp:14711 BEFORE PX4 ever starts.
+mavlink start -x -u $udp_vgps_port_local -r 400000 -f -m onboard -o $udp_vgps_port_remote
+
+# rerun channel (astrm_dronesim live-bridge, 2026-05-12).
+# Mode `onboard` is the only PX4 mavlink mode that auto-streams the
+# debug-array EKF telemetry (EKF_INNOVATIONS_DEBUG / EKF_AID_SRC_DEBUG)
+# that the rerun blueprints (`ekf_health`) plot — `normal` and `osd`
+# omit them.  Rate 4 MB/s matches the GCS / offboard links; the EKF
+# debug arrays alone can saturate 400 kB/s.  See the note on
+# udp_rerun_port_local above for the peer-lock rationale.
+mavlink start -x -u $udp_rerun_port_local -r 4000000 -f -m onboard -o $udp_rerun_port_remote
+
+# rerun stream subscriptions — pulls in messages the viewer plots that
+# are NOT in any default mode (POSITION_TARGET_*, HOME_POSITION,
+# EXTENDED_SYS_STATE), plus bumps rates on the high-cadence position /
+# attitude streams.  HEARTBEAT, SYS_STATUS, STATUSTEXT, BATTERY_STATUS,
+# VIBRATION, HIGHRES_IMU come from `onboard` defaults at suitable rates.
+mavlink stream -r 50 -s GLOBAL_POSITION_INT       -u $udp_rerun_port_local
+mavlink stream -r 50 -s LOCAL_POSITION_NED        -u $udp_rerun_port_local
+mavlink stream -r 50 -s ATTITUDE                  -u $udp_rerun_port_local
+mavlink stream -r 50 -s ATTITUDE_QUATERNION       -u $udp_rerun_port_local
+mavlink stream -r 10 -s ALTITUDE                  -u $udp_rerun_port_local
+mavlink stream -r 10 -s VFR_HUD                   -u $udp_rerun_port_local
+mavlink stream -r 10 -s GPS_RAW_INT               -u $udp_rerun_port_local
+mavlink stream -r 10 -s ESTIMATOR_STATUS          -u $udp_rerun_port_local
+mavlink stream -r  5 -s ODOMETRY                  -u $udp_rerun_port_local
+mavlink stream -r 10 -s DEBUG_FLOAT_ARRAY         -u $udp_rerun_port_local
+mavlink stream -r 10 -s POSITION_TARGET_LOCAL_NED -u $udp_rerun_port_local
+mavlink stream -r 10 -s POSITION_TARGET_GLOBAL_INT -u $udp_rerun_port_local
+mavlink stream -r  1 -s HOME_POSITION             -u $udp_rerun_port_local
+mavlink stream -r  1 -s EXTENDED_SYS_STATE        -u $udp_rerun_port_local
 
 # Onboard link to gimbal
 mavlink start -x -u $udp_onboard_gimbal_port_local -r 400000 -f -m gimbal -o $udp_onboard_gimbal_port_remote
