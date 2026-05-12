@@ -65,8 +65,10 @@ mavlink start -x -u $udp_offboard_port_local -r 4000000 -f -m onboard -o $udp_of
 # 14601 to receive. astrm_dronesim mod.
 mavlink start -x -u $udp_tool_port_local -r 4000000 -f -m onboard -o $udp_tool_port_remote
 
-# Onboard link to camera
-mavlink start -x -u $udp_onboard_payload_port_local -r 4000 -f -m onboard -o $udp_onboard_payload_port_remote
+# Joystick link (repurposed from payload). No -o: avoids macOS ICMP-poisoning
+# (same bug that hit vGPS — sending to an unbound port poisons the socket).
+# Rate bumped to 4 MB/s so onboard heartbeats aren't throttled to zero.
+mavlink start -x -u $udp_onboard_payload_port_local -r 4000000 -f -m onboard
 
 # vGPS channel (astrm_vGPS SITL integration, 2026-05-11) — onboard mode,
 # 400 kB/s rate is plenty for the runner's GLOBAL_POSITION_INT + GPS_RAW_INT
