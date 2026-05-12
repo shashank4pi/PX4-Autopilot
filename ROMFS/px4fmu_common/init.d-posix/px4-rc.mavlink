@@ -44,8 +44,8 @@ vgps_partner_ip="${ASTRM_VGPS_PARTNER_IP:-127.0.0.1}"
 udp_rerun_port_local=$((14720+px4_instance))
 udp_rerun_port_remote=$((14721+px4_instance))
 
-# GCS link
-mavlink start -x -u $udp_gcs_port_local -r 4000000 -f
+# GCS link — -o 14550 makes PX4 proactively send to QGC's default listen port
+mavlink start -x -u $udp_gcs_port_local -r 4000000 -f -o 14550
 mavlink stream -r 50 -s POSITION_TARGET_LOCAL_NED -u $udp_gcs_port_local
 mavlink stream -r 50 -s LOCAL_POSITION_NED -u $udp_gcs_port_local
 mavlink stream -r 50 -s GLOBAL_POSITION_INT -u $udp_gcs_port_local
