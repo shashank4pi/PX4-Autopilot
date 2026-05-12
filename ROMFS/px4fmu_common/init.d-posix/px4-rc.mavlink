@@ -8,7 +8,7 @@ udp_onboard_payload_port_local=$((14280+px4_instance))
 udp_onboard_payload_port_remote=$((14030+px4_instance))
 udp_onboard_gimbal_port_local=$((13030+px4_instance))
 udp_onboard_gimbal_port_remote=$((13280+px4_instance))
-udp_gcs_port_local=$((14550+px4_instance))
+udp_gcs_port_local=$((18570+px4_instance))
 udp_tool_port_local=$((14600+px4_instance))
 udp_tool_port_remote=$((14601+px4_instance))
 
