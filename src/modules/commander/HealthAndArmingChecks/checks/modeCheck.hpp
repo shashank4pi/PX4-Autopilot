@@ -50,6 +50,12 @@ private:
 
 	DEFINE_PARAMETERS_CUSTOM_PARENT(HealthAndArmingCheckBase,
 					(ParamBool<px4::params::COM_ARM_MIS_REQ>) _param_com_arm_mis_req,
-					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode
+					(ParamInt<px4::params::COM_RC_IN_MODE>) _param_com_rc_in_mode,
+					// astrm_dronesim fork: opt-in bypass for the
+					// hardcoded local/global-position requirement on
+					// nav modes.  When 1, the position-invalid blocks
+					// in modeCheck.cpp emit warnings instead of
+					// clearing the can-run bits.  Default 0 = stock.
+					(ParamInt<px4::params::COM_DR_NAV_OK>) _param_com_dr_nav_ok
 				       );
 };

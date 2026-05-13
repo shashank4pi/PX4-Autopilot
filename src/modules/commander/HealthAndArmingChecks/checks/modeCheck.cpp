@@ -75,15 +75,30 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		local_position_modes = local_position_modes | (NavModes)reporter.failsafeFlags().mode_req_local_position_relaxed;
 	}
 
+	// astrm_dronesim fork: COM_DR_NAV_OK demotes the local/global-position
+	// mode-switch blocks to warnings.  Stock behaviour (param=0) is to
+	// emit a Log::Error AND clearCanRunBits — which prevents the operator
+	// from switching into POSCTL/AUTO.MISSION/etc. without a position
+	// estimate.  With param=1 the operator stays in control: a warning is
+	// emitted so the failure is visible, but the can-run bits stay set so
+	// the requested mode is allowed.  Used for GPS-less SITL/HITL where
+	// the operator deliberately wants to run missions on dead-reckoned
+	// state until vGPS or another aiding source comes online.
+	const bool dr_nav_override = (_param_com_dr_nav_ok.get() == 1);
+
 	if (local_position_modes != NavModes::None) {
+		const events::Log lvl = dr_nav_override ? events::Log::Warning : events::Log::Error;
 		/* EVENT
 		 * @description
 		 * The available positioning data is not sufficient to execute the selected mode.
 		 */
 		reporter.armingCheckFailure(local_position_modes, health_component_t::local_position_estimate,
 					    events::ID("check_modes_local_pos"),
-					    events::Log::Error, "Navigation error: No valid position estimate");
-		reporter.clearCanRunBits(local_position_modes);
+					    lvl, "Navigation error: No valid position estimate");
+
+		if (!dr_nav_override) {
+			reporter.clearCanRunBits(local_position_modes);
+		}
 	}
 
 	NavModes global_position_modes = NavModes::None;
@@ -98,6 +113,7 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 	}
 
 	if (global_position_modes != NavModes::None) {
+		const events::Log lvl = dr_nav_override ? events::Log::Warning : events::Log::Error;
 		/* EVENT
 		 * @description
 		 * The available positioning data is not sufficient to execute the selected mode.
@@ -105,19 +121,26 @@ void ModeChecks::checkAndReport(const Context &context, Report &reporter)
 		reporter.armingCheckFailure(global_position_modes,
 					    health_component_t::global_position_estimate,
 					    events::ID("check_modes_global_pos"),
-					    events::Log::Error, "Navigation error: No valid global position estimate");
-		reporter.clearCanRunBits(global_position_modes);
+					    lvl, "Navigation error: No valid global position estimate");
+
+		if (!dr_nav_override) {
+			reporter.clearCanRunBits(global_position_modes);
+		}
 	}
 
 	if (reporter.failsafeFlags().local_altitude_invalid && reporter.failsafeFlags().mode_req_local_alt != 0) {
+		const events::Log lvl = dr_nav_override ? events::Log::Warning : events::Log::Critical;
 		/* EVENT
 		 * @description
 		 * The available positioning data is not sufficient to execute the selected mode.
 		 */
 		reporter.armingCheckFailure((NavModes)reporter.failsafeFlags().mode_req_local_alt, health_component_t::system,
 					    events::ID("check_modes_local_alt"),
-					    events::Log::Critical, "Navigation error: No valid altitude estimate");
-		reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_local_alt);
+					    lvl, "Navigation error: No valid altitude estimate");
+
+		if (!dr_nav_override) {
+			reporter.clearCanRunBits((NavModes)reporter.failsafeFlags().mode_req_local_alt);
+		}
 	}
 
 	NavModes mission_required_modes = (NavModes)reporter.failsafeFlags().mode_req_mission;

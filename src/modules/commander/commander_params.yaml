@@ -131,6 +131,32 @@ parameters:
         1: Allow arming (with warning)
         2: Allow arming (no warning)
       default: 1
+    COM_DR_NAV_OK:
+      description:
+        short: Allow nav modes (POSCTL, AUTO.MISSION, RTL...) under dead-reckoning (no valid position estimate)
+        long: |-
+          Stock PX4 hard-blocks switching into nav modes whenever the EKF reports
+          local_position_invalid or global_position_invalid (see modeCheck.cpp).
+          Set to 1 to demote those mode-switch blocks to warnings — the operator
+          stays in full control of mode switching even when no position estimate
+          is available, and PX4 keeps trying to fly the requested mode on whatever
+          state the EKF *can* maintain (attitude + dead-reckoned velocity).
+
+          Why exists: GPS-less airframes (no GPS module, or operating in
+          permanently denied environments) need to be able to load + execute
+          waypoint missions BEFORE a horizontal-aiding source comes online —
+          stock PX4 won't let them, even with COM_ARM_WO_GPS=1.  This param is
+          the matching nav-mode bypass.
+
+          Drift accumulates fast on IMU-only dead reckoning (seconds, not
+          minutes).  This is unsafe on hardware: setting this to 1 means the
+          autopilot will gladly run AUTO.MISSION on a state it knows is bad.
+          Use only for SITL or with another aiding source plumbed in.
+      type: enum
+      values:
+        0: Block nav-mode switches when position is invalid (stock behaviour)
+        1: Demote position-invalid blocks to warnings; allow the mode (DANGEROUS)
+      default: 0
     COM_ARM_SWISBTN:
       description:
         short: Arm switch is a momentary button
