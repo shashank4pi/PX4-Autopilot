@@ -74,7 +74,7 @@
 	branch = px4
 [submodule "Tools/simulation/gz"]
 	path = Tools/simulation/gz
-	url = https://github.com/shashank4pi/PX4-gazebo-models.git
+	url = forgejo:shashank/PX4-gazebo-models.git
 	branch = astrm_dronesim
 [submodule "boards/modalai/voxl2/libfc-sensor-api"]
 	path = boards/modalai/voxl2/libfc-sensor-api
