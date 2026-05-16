@@ -133,8 +133,13 @@ if [ -n "${PX4_SIM_MODEL#*gz_}" ] && [ -z "${PX4_GZ_MODEL_NAME}" ]; then
 
 	echo "INFO  [init] Spawning Gazebo model"
 
-	# include the actual SDF in this one, containing the pose if given
-	sdf_str="<sdf version=\"1.6\"> <include> <uri>file://${PX4_GZ_MODELS}/${MODEL_NAME}/model.sdf</uri> ${sdf_pose_str} </include> </sdf>"
+	# include the actual SDF in this one, containing the pose if given.
+	# astrm overlay patch: use the model:// URI so Gazebo resolves the SDF
+	# via GZ_SIM_RESOURCE_PATH — that path includes both PX4_GZ_MODELS and
+	# astrm_dronesim's drones/overlay/models (prepended by resolve.sh), so
+	# composed/overlay loadouts spawn without symlinking model dirs into
+	# the upstream PX4 tree.  Original was: file://${PX4_GZ_MODELS}/${MODEL_NAME}/model.sdf
+	sdf_str="<sdf version=\"1.6\"> <include> <uri>model://${MODEL_NAME}</uri> ${sdf_pose_str} </include> </sdf>"
 
 	# Spawn model
 	${gz_command} service -s "/world/${PX4_GZ_WORLD}/create" --reqtype gz.msgs.EntityFactory \

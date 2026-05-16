@@ -122,3 +122,24 @@ px4_add_romfs_files(
 
 	# [22000, 22999] Reserve for custom models
 )
+
+# --- astrm overlay hook --------------------------------------------------------
+# Auto-discover any *_gz_* airframes dropped into this directory by
+# astrm_dronesim's overlay catalog (drones/_lib/sync_overlay.sh symlinks
+# drones/overlay/airframes/* here so CMake sees them).  Files already
+# enumerated above are skipped — this only adds genuinely-new overlay
+# entries to PX4_ROMFS_FILES so they get copied into rootfs at build
+# time and PX4 SITL can find them at runtime.  See
+# astrm_vGPS/scripts/sim/link_overlay_airframes.sh and
+# astrm_dronesim/drones/README.md for the overlay design.
+file(GLOB _astrm_overlay_gz RELATIVE ${CMAKE_CURRENT_LIST_DIR}
+	${CMAKE_CURRENT_LIST_DIR}/*_gz_*)
+get_property(_astrm_already_added GLOBAL PROPERTY PX4_ROMFS_FILES)
+foreach(_astrm_af IN LISTS _astrm_overlay_gz)
+	set(_astrm_full "${CMAKE_CURRENT_LIST_DIR}/${_astrm_af}")
+	list(FIND _astrm_already_added "${_astrm_full}" _astrm_idx)
+	if(_astrm_idx EQUAL -1)
+		message(STATUS "astrm overlay airframe: ${_astrm_af}")
+		px4_add_romfs_files(${_astrm_af})
+	endif()
+endforeach()
